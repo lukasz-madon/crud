@@ -3,4 +3,4 @@ venv
 node_modules
 .tmp
 .sass-cache
-app/bower_components
+client/app/bower_components
