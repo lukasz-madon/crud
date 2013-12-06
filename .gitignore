@@ -6,3 +6,4 @@ node_modules
 client/app/bower_components
 client/dist
 server/static
+heroku
