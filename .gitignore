@@ -7,3 +7,4 @@ client/app/bower_components
 client/dist
 server/static
 heroku
+db.sqlite
