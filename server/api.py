@@ -1,8 +1,9 @@
 from flask.ext.restful import Resource
-from flask import request, jsonify, g, url_for
-from server import api
-from server.app import config
-from models import User
+from flask import request, jsonify, g, url_for, abort, make_response
+from flask.ext.httpauth import HTTPBasicAuth
+from flask.ext.restful import Api
+
+from models import User, db
 
 
 todos = { 
@@ -10,27 +11,29 @@ todos = {
 }
 
 auth = HTTPBasicAuth()
+api = Api()
+
 
 @auth.verify_password
 def verify_password(username_or_token, password):
     # first try to authenticate by token
-    user = User.verify_auth_token(username_or_token)
+    user = User.verify_auth_token(username_or_token, api.app.config["SECRET_KEY"])
     if not user:
         # try to authenticate with username/password
         user = User.query.filter_by(username = username_or_token).first()
-        if not user or not user.verify_password(password, config["SECRET_KEY"]):
+        if not user or not user.verify_password(password, api.app.config["SECRET_KEY"]):
             return False
     g.user = user
     return True
 
-class TodoSimple(Resource):
+class Tasks(Resource):
     @auth.login_required
     def get(self, todo_id):
         return {todo_id: todos.get(todo_id, "task doesn't exist")}
 
-class Users(object):
+class Users(Resource):
     """Users api"""
-    def get(self, user_id):
+    def get(self, id):
     	user = User.query.get(id)
     	if not user:
         	abort(400)
@@ -47,14 +50,12 @@ class Users(object):
         user.hash_password(password)
         db.session.add(user)
         db.session.commit()
-        return jsonify({"username": user.username }), 201, {"Location": url_for("get_user", id = user.id, _external = True)}
+        res = make_response(jsonify({"username": user.username }), 201)
+        res.headers["Location"] = api.url_for(self, id = user.id, _external = True)
+        return res
 
 class Token(Resource):
     @auth.login_required
     def get(self):
-        token = g.user.generate_auth_token(600, config["SECRET_KEY"])
-        return jsonify({"token": token.decode("ascii"), "duration": 600 })
-
-api.add_resource(TodoSimple, "/<string:todo_id>")
-api.add_resource(Users, "/users/<int:id>")
-api.add_resource(Token, "/token")
+        token = g.user.generate_auth_token(600, api.app.config["SECRET_KEY"])
+        return jsonify({"token": token.edcode("ascii"), "duration": 600 })

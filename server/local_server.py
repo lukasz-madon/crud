@@ -1,8 +1,3 @@
-import os
-from server import app, db
-
-
-if not os.path.exists("db.sqlite"):
-    db.create_all()
+from server import app
 
 app.run(debug=True)
